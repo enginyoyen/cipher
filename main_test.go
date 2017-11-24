@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"crypto/rsa"
+	"encoding/hex"
 )
 
 func TestMain(m *testing.M) {
@@ -48,14 +49,12 @@ func TestAll(t *testing.T) {
 	//TODO wait for client to approved list of files to be transferred
 	postFile(t, &sessionId, publicKey)
 
-	fmt.Println("starting to decode it", publicKey)
-
 }
 
-func postFile(t *testing.T, sessionId *SessionInfo, pk *rsa.PublicKey) *rsa.PublicKey {
+func postFile(t *testing.T, sessionId *SessionInfo, pk *rsa.PublicKey) {
 
 	aesKey, _ := GenerateAesKey()
-	//encyptedAesKey, _ :=EncryptMessage(aesKey, pk)
+	encyptedAesKey, _ := EncryptMessage(aesKey, pk)
 
 	//create temporary test file
 	tempInput, _ := ioutil.TempFile(os.TempDir(), "")
@@ -71,10 +70,23 @@ func postFile(t *testing.T, sessionId *SessionInfo, pk *rsa.PublicKey) *rsa.Publ
 	//encrypt test file
 	EncryptFileWithAes(aesKey, tempInput.Name(), fileToBeEncrypted.Name())
 
-	//TODO POST encrypted file to client
-	// use encyptedAesKey as http header for file to be decrypted
+	file, err := os.Open(fileToBeEncrypted.Name())
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	req, err := http.NewRequest("POST", "http://127.0.0.1:8080/file/"+sessionId.SessionId, file)
 
-	return nil
+	client := &http.Client{}
+	encodedAesKey := hex.EncodeToString(encyptedAesKey)
+	req.Header.Add("X-AesKey", encodedAesKey)
+	req.Header.Add("Content-Disposition", "inline; filename=\"myfile.txt\"")
+	resp, err := client.Do(req)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+	assertStatusCode(t, resp, http.StatusOK)
 }
 
 func getThePublicKey(t *testing.T, sessionId *SessionInfo) *rsa.PublicKey {

@@ -41,12 +41,12 @@ func TestEncryptDecryptMessage(t *testing.T) {
 		t.Errorf("Could not encrypt the message %s", err)
 	}
 
-	if encryptedMsg == msg {
+	if string(encryptedMsg) == msg {
 		t.Error("Encryption failure, result of the encryption should be same as input")
 	}
 	result, err := DecryptMessage(encryptedMsg, rsaKey)
 
-	if result != msg {
+	if string(result) != msg {
 		t.Errorf("Result of the decryption (%s) does not match the input value (%s)", result, msg)
 	}
 }
@@ -88,7 +88,8 @@ func TestFileEncryptionDecryption(t *testing.T) {
 	fileToBeDecrypted.Close()
 	defer os.Remove(fileToBeDecrypted.Name())
 
-	DecryptFileWithAes(key, fileToBeEncrypted.Name(), fileToBeDecrypted.Name())
+	encryptedFileReader, _ := os.Open(fileToBeEncrypted.Name())
+	DecryptFileWithAes(key, encryptedFileReader, fileToBeDecrypted.Name())
 
 	assert.True(t, filesEqual(tempInput.Name(), fileToBeDecrypted.Name()), "Content of original file and decrypted file should be same")
 

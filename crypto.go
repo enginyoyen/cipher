@@ -50,24 +50,22 @@ func DecodePublicKey(pemBlock string) (*rsa.PublicKey, error) {
 	}
 }
 
-func EncryptMessage(msg []byte, key *rsa.PublicKey) (string, error) {
+func EncryptMessage(msg []byte, key *rsa.PublicKey) ([]byte, error) {
 	result, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, key, msg, nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error from encryption: %s\n", err)
-		return "", err
+		return nil, err
 	}
-	return string(result), nil
+	return result, nil
 }
 
-func DecryptMessage(msg string, key *rsa.PrivateKey) (string, error) {
-	secretMessage := []byte(msg)
-
-	result, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, key, secretMessage, nil)
+func DecryptMessage(msg []byte, key *rsa.PrivateKey) ([]byte, error) {
+	result, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, key, msg, nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error from encryption: %s\n", err)
-		return "", err
+		return nil, err
 	}
-	return string(result), nil
+	return result, nil
 }
 
 func GenerateAesKey() ([]byte, error) {
@@ -79,12 +77,7 @@ func GenerateAesKey() ([]byte, error) {
 	return key, nil
 }
 
-func DecryptFileWithAes(key []byte, src string, dest string) error {
-	inFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer inFile.Close()
+func DecryptFileWithAes(key []byte, inputReader io.Reader, dest string) error {
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -100,7 +93,7 @@ func DecryptFileWithAes(key []byte, src string, dest string) error {
 	}
 	defer outFile.Close()
 
-	reader := &cipher.StreamReader{S: stream, R: inFile}
+	reader := &cipher.StreamReader{S: stream, R: inputReader}
 	// Copy the input file to the output file, decrypting as we go.
 	if _, err := io.Copy(outFile, reader); err != nil {
 		return err
@@ -112,6 +105,7 @@ func DecryptFileWithAes(key []byte, src string, dest string) error {
 	// the output.
 	return nil
 }
+
 
 func EncryptFileWithAes(key []byte, src string, dest string) error {
 	inFile, err := os.Open(src)

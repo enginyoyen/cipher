@@ -8,7 +8,6 @@ import (
 	"strings"
 	"net/http"
 	"encoding/json"
-	"fmt"
 )
 
 func TestInitSessionWithEmptyMethod(t *testing.T) {
@@ -63,7 +62,6 @@ func TestGetPublicKey(t *testing.T) {
 	assertStatusCode(t, resp, http.StatusOK)
 	assert.Equal(t, resp.Header.Get("Content-Type"), "text/html", "wrong content type")
 	assert.Contains(t, string(body), "BEGIN RSA PUBLIC KEY", "Result does not contain PUBLIC KEY")
-	fmt.Println(string(body))
 }
 
 func TestGetPublicKeyWithWrongSessionId(t *testing.T) {
@@ -74,6 +72,20 @@ func TestGetPublicKeyWithWrongSessionId(t *testing.T) {
 	resp := w.Result()
 
 	assertStatusCode(t, resp, http.StatusNotFound)
+}
+
+
+func TestExtractFileName(t *testing.T) {
+	req := httptest.NewRequest("GET", "http://example.com/", nil)
+	req.Header.Add("Content-Disposition", "inline; filename=\"myfile.txt\"")
+	fileName, _ := ExtractFileName(req)
+	assert.Equal(t, "myfile.txt", fileName)
+
+	//delete header and re-test
+	req.Header.Del("Content-Disposition")
+	fileName, err := ExtractFileName(req)
+	assert.NotNil(t, err)
+	assert.Equal(t, "", fileName)
 }
 
 func assertContentType(t *testing.T, r *http.Response) {

@@ -23,6 +23,8 @@ type SessionRequest struct {
 	Name string
 }
 
+
+
 var sessions = make(map[string]sessionDetail)
 
 func checkError(err error) {
@@ -66,6 +68,7 @@ func main() {
 
 	go func() {
 		http.HandleFunc("/getPublicKey/", GetPublicKey)
+		http.HandleFunc("/file/", ReceiveFile)
 		http.HandleFunc("/listClients", ListClients)
 		http.HandleFunc("/initSession", InitSession)
 		http.ListenAndServe(":8080", nil)
